@@ -1,18 +1,32 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from random import sample
 
 # Create your models here.
 class UserProfile(models.Model):
     user=models.OneToOneField(User,on_delete=models.CASCADE,related_name="profile")
-    profile_pic=models.ImageField(upload_to="profilepics",null=True,blank=True)
-    bio=models.CharField(max_length=200)
-    address=models.CharField(max_length=200)
+    profile_pic=models.ImageField(upload_to="profilepics",blank=True,default="/profilepics/default.jpg")
+    bio=models.CharField(max_length=200 ,null=True)
+    address=models.CharField(max_length=200,null=True)
     dob=models.DateTimeField(null=True)
-    following=models.ManyToManyField("self",related_name="followed_by")
+    following=models.ManyToManyField("self",related_name="followed_by",symmetrical=False)
     created_date=models.DateTimeField(auto_now_add=True)
+    cover_pic=models.ImageField(upload_to="coverpic",blank=True,default="/profilepics/cover.jpg")
 
     def __str__(self):
         return self.user.username
+    
+    @property
+    def friend_request(self):
+        all_profiles=UserProfile.objects.all().exclude(user=self.user)
+        following_profiles=self.following.all()
+        suggestions=set(all_profiles) - set(following_profiles)
+
+        if len(suggestions)>2:
+            return sample(list(suggestions),2)
+        
+        return suggestions
     
 class Posts(models.Model):
     title=models.CharField(max_length=200)
@@ -32,3 +46,16 @@ class Comments(models.Model):
 
     def __str__(self):
         return self.comment_text
+    
+
+# django signals  post-save,pre-save,post-delete,pre-delete
+
+def create_profile(sender,instance,created,**kw):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+post_save.connect(create_profile,sender=User)
+
+
+
+
