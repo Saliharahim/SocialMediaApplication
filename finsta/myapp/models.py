@@ -47,7 +47,6 @@ class Comments(models.Model):
     def __str__(self):
         return self.comment_text
     
-
 # django signals  post-save,pre-save,post-delete,pre-delete
 
 def create_profile(sender,instance,created,**kw):
